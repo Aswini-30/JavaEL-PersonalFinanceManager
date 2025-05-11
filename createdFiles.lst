@@ -1,0 +1,15 @@
+com\finance\PersonalFinanceManager\service\ManagerService.class
+com\finance\PersonalFinanceManager\controller\HealthCheckController.class
+com\finance\PersonalFinanceManager\model\Manager.class
+com\finance\PersonalFinanceManager\PersonalFinanceManagerApplication.class
+com\finance\PersonalFinanceManager\repository\ManagerRepository.class
+com\finance\PersonalFinanceManager\repository\CustomerRepository.class
+com\finance\PersonalFinanceManager\service\CustomerService.class
+com\finance\PersonalFinanceManager\model\Customer.class
+com\finance\PersonalFinanceManager\controller\ManagerController.class
+com\finance\PersonalFinanceManager\repository\TransactionRepository.class
+com\finance\PersonalFinanceManager\model\Transaction.class
+com\finance\PersonalFinanceManager\controller\CustomerController.class
+com\finance\PersonalFinanceManager\service\TransactionService.class
+com\finance\PersonalFinanceManager\controller\TransactionController.class
+com\finance\PersonalFinanceManager\service\TransactionService$Totals.class

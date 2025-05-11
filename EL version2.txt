@@ -1,0 +1,220 @@
+import java.io.*;
+import java.util.*;
+class Transaction {
+   private String type;
+   private double amount;
+   private String description;
+   public Transaction(String type, double amount, String description) {
+       this.type = type;
+       this.amount = amount;
+       this.description = description;
+   }
+   public String getType() { return type; }
+   public double getAmount() { return amount; }
+   public String getDescription() { return description; }
+   public void setType(String type) { this.type = type; }
+   public void setAmount(double amount) { this.amount = amount; }
+   public void setDescription(String description) { this.description = description; }
+   public void display() {
+       System.out.print( type+ amount+ description);
+   }
+   public String toFileString() {
+       return type + "," + amount + "," + description;
+   }
+   public static Transaction fromFileString(String line) {
+       String[] parts = line.split(",");
+       return new Transaction(parts[0], Double.parseDouble(parts[1]), parts[2]);
+   }
+}
+abstract class Investment {
+   private String type;
+   private double amount;
+   private int duration;
+   public Investment(String type, double amount, int duration) {
+       this.type = type;
+       this.amount = amount;
+       this.duration = duration;
+   }
+   public abstract double calculateMaturity();
+   public void display() {
+   	System.out.println(type + " " + amount + " " + duration + " years");
+   }
+   public String toFileString() {
+       return type + "," + amount + "," + duration;
+   }
+   public static Investment fromFileString(String line) {
+       String[] parts = line.split(",");
+       double amount = Double.parseDouble(parts[1]);
+       int duration = Integer.parseInt(parts[2]);
+       return parts[0].equals("SIP") ? new SIP(amount, duration, 1000) : new FD(amount, duration);
+   }
+   public String getType() { return type; }
+   public double getAmount() { return amount; }
+   public int getDuration() { return duration; }
+   public void setType(String type) { this.type = type; }
+   public void setAmount(double amount) { this.amount = amount; }
+   public void setDuration(int duration) { this.duration = duration; }
+}
+class SIP extends Investment {
+   private double monthlyInvestment;
+   public SIP(double amount, int duration, double monthlyInvestment) {
+       super("SIP", amount, duration);
+       this.monthlyInvestment = monthlyInvestment;
+   }
+   @Override
+   public double calculateMaturity() {
+       double rate = 0.12 / 12;
+       int months = getDuration() * 12;
+       return getAmount() * Math.pow(1 + rate, months) +
+              (monthlyInvestment * (Math.pow(1 + rate, months) - 1) / rate) * (1 + rate);
+   }
+   @Override
+   public String toFileString() {
+       return super.toFileString() + "," + monthlyInvestment;
+   }
+   public double getMonthlyInvestment() { return monthlyInvestment; }
+   public void setMonthlyInvestment(double monthlyInvestment) { this.monthlyInvestment = monthlyInvestment; }
+}
+class FD extends Investment {
+   public FD(double amount, int duration) {
+       super("FD", amount, duration);
+   }
+   @Override
+   public double calculateMaturity() {
+       double rate = 0.07;
+       return getAmount() * Math.pow(1 + rate, getDuration());
+   }
+}
+class FinanceManager {
+   private double balance;
+   private List<Transaction> transactions;
+   private List<Investment> investments;
+   private final String TRANSACTION_FILE = "transactions.txt";
+   private final String INVESTMENT_FILE = "investments.txt";
+   public FinanceManager() {
+       balance = 0;
+       transactions = new ArrayList<>();
+       investments = new ArrayList<>();
+       loadFromFile();
+   }
+   public void recordIncome(double amount, String desc) {
+       balance += amount;
+       transactions.add(new Transaction("Income", amount, desc));
+   }
+   public boolean recordExpenditure(double amount, String desc) {
+       if (amount > balance) return false;
+       balance -= amount;
+       transactions.add(new Transaction("Expenditure", amount, desc));
+       return true;
+   }
+   public void addInvestment(Investment inv) {
+       investments.add(inv);
+   }
+   public void showFinanceInfo() {
+       System.out.println("\n-- BALANCE: " + balance);
+       System.out.println("-- TRANSACTIONS --");
+       for (Transaction t : transactions) t.display();
+       System.out.println("\n-- INVESTMENTS --");
+       for (Investment inv : investments) inv.display();
+   }
+   public void showInvestmentInfo() {
+       System.out.println("\n-- INVESTMENT MATURITY --");
+       for (Investment inv : investments)
+           System.out.printf("%s Maturity: %.2f Rs\n", inv.getType(), inv.calculateMaturity());
+   }
+   public void saveToFile() {
+       try (BufferedWriter transWriter = new BufferedWriter(new FileWriter(TRANSACTION_FILE));
+            BufferedWriter investWriter = new BufferedWriter(new FileWriter(INVESTMENT_FILE))) {
+           for (Transaction t : transactions)
+               transWriter.write(t.toFileString() + "\n");
+           for (Investment inv : investments)
+               investWriter.write(inv.toFileString() + "\n");
+           System.out.println("Data saved successfully!");
+       } catch (IOException e) {
+           System.out.println("Error saving data: " + e.getMessage());
+       }
+   }
+   public void loadFromFile() {
+       try (BufferedReader transReader = new BufferedReader(new FileReader(TRANSACTION_FILE));
+            BufferedReader investReader = new BufferedReader(new FileReader(INVESTMENT_FILE))) {
+           String line;
+           while ((line = transReader.readLine()) != null)
+               transactions.add(Transaction.fromFileString(line));
+           while ((line = investReader.readLine()) != null)
+               investments.add(Investment.fromFileString(line));
+           System.out.println("Data loaded successfully!");
+       } catch (IOException e) {
+           System.out.println("No previous data found. Starting fresh.");
+       }
+   }
+}
+public class PersonalFinanceManager {
+   public static void main(String[] args) {
+       Scanner scanner = new Scanner(System.in);
+       FinanceManager fm = new FinanceManager();
+       while (true) {
+           System.out.println("\n1. Record INCOME");
+           System.out.println("2. Record EXPENDITURE");
+           System.out.println("3. Make Investment");
+           System.out.println("4. Finance Info");
+           System.out.println("5. Investment Info");
+           System.out.println("6. Save Data");
+           System.out.println("0. Exit");
+           System.out.print("Enter choice: ");
+           try {
+               int choice = scanner.nextInt();
+               scanner.nextLine();
+               switch (choice) {
+                   case 1:
+                       System.out.print("Enter amount: ");
+                       double incomeAmount = scanner.nextDouble();
+                       scanner.nextLine();
+                       System.out.print("Enter description: ");
+                       String incomeDesc = scanner.nextLine();
+                       fm.recordIncome(incomeAmount, incomeDesc);
+                       break;
+                   case 2:
+                       System.out.print("Enter amount: ");
+                       double expenseAmount = scanner.nextDouble();
+                       scanner.nextLine();
+                       System.out.print("Enter description: ");
+                       String expenseDesc = scanner.nextLine();
+                       if (!fm.recordExpenditure(expenseAmount, expenseDesc))
+                           System.out.println("Insufficient balance!");
+                       break;
+                   case 3:
+                       System.out.print("Enter amount: ");
+                       double invAmount = scanner.nextDouble();
+                       System.out.print("Enter duration (years): ");
+                       int duration = scanner.nextInt();
+                       System.out.println("1. SIP\n2. FD");
+                       System.out.print("Choose investment type: ");
+                       int invChoice = scanner.nextInt();
+                       if (invChoice == 1) {
+                           System.out.print("Enter monthly investment: ");
+                           double monthlyInvestment = scanner.nextDouble();
+                           fm.addInvestment(new SIP(invAmount, duration, monthlyInvestment));
+                       } else if (invChoice == 2) {
+                           fm.addInvestment(new FD(invAmount, duration));
+                       }
+                       break;
+                   case 4:
+                       fm.showFinanceInfo();
+                       break;
+                   case 5:
+                       fm.showInvestmentInfo();
+                       break;
+                   case 6:
+                       fm.saveToFile();
+                       break;
+                   case 0:
+                       scanner.close();
+                       return;
+               }
+           } catch (InputMismatchException e) {
+               System.out.println("Invalid input! Please enter a number.");
+               scanner.nextLine();
+           }
+       }
+   }
+}
